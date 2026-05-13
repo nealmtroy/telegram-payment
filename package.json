@@ -1,0 +1,15 @@
+{
+  "name": "telegram-vip-payment-bot",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "containers:list": "wrangler containers list"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "^0.3.4",
+    "wrangler": "^4.90.1"
+  },
+  "devDependencies": {}
+}

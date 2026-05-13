@@ -1,0 +1,10 @@
+.env
+.dev.vars
+.venv
+.git
+__pycache__
+*.pyc
+payments.db
+*.sqlite
+node_modules
+.wrangler

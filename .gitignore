@@ -1,0 +1,10 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+payments.db
+*.sqlite
+.tmp_pip_download/
+node_modules/
+.wrangler/
+.dev.vars

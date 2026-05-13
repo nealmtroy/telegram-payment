@@ -1,0 +1,4 @@
+python-telegram-bot[job-queue]==22.5
+telethon>=1.41,<2
+qris-saweria==1.0.1
+python-dotenv>=1.0.1

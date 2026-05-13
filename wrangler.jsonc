@@ -1,0 +1,51 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "telegram-vip-payment-bot",
+  "main": "src/index.js",
+  "compatibility_date": "2026-05-13",
+  "triggers": {
+    "crons": ["*/30 * * * *"]
+  },
+  "containers": [
+    {
+      "class_name": "VipPaymentBotContainer",
+      "image": "./Dockerfile",
+      "max_instances": 1,
+      "instance_type": "lite"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "VipPaymentBotContainer",
+        "name": "VIP_PAYMENT_BOT"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["VipPaymentBotContainer"]
+    }
+  ],
+  "secrets": {
+    "required": [
+      "BOT_TOKEN",
+      "ADMIN_IDS",
+      "TELETHON_API_ID",
+      "TELETHON_API_HASH",
+      "TELETHON_SESSION_STRING",
+      "VIP_GROUP_ID",
+      "SAWERIA_USERNAME",
+      "PAYMENT_AMOUNT",
+      "PAYMENT_EMAIL",
+      "PAYMENT_EXPIRE_MINUTES",
+      "PAYMENT_CHECK_INTERVAL_SECONDS",
+      "VIP_INVITE_EXPIRE_HOURS",
+      "VIP_INVITE_USAGE_LIMIT",
+      "DB_PATH",
+      "LOG_LEVEL",
+      "CLOUDFLARE_BOOT_TOKEN"
+    ]
+  }
+}
