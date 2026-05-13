@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -55,6 +56,20 @@ def _admin_ids() -> set[int]:
     return ids
 
 
+def _saweria_username() -> str:
+    raw = _required("SAWERIA_USERNAME")
+    value = raw.strip()
+    if value.startswith(("http://", "https://")):
+        parsed = urlparse(value)
+        value = parsed.path.strip("/").split("/", 1)[0]
+    value = value.strip().strip("@").strip("/")
+    if not value:
+        raise RuntimeError("SAWERIA_USERNAME tidak valid.")
+    if "/" in value or "?" in value or "#" in value:
+        raise RuntimeError("SAWERIA_USERNAME isi username saja, contoh: nama_saweria.")
+    return value
+
+
 @dataclass(frozen=True)
 class Settings:
     bot_token: str
@@ -89,7 +104,7 @@ def load_settings() -> Settings:
         telethon_api_hash=_required("TELETHON_API_HASH"),
         telethon_session_string=_required("TELETHON_SESSION_STRING"),
         vip_group_id=vip_group_id,
-        saweria_username=_required("SAWERIA_USERNAME"),
+        saweria_username=_saweria_username(),
         payment_amount=_bounded_int("PAYMENT_AMOUNT", minimum=1000),
         payment_email=os.getenv("PAYMENT_EMAIL", "member@example.com").strip(),
         payment_expire_minutes=_bounded_int(

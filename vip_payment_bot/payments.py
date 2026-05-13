@@ -34,13 +34,21 @@ class SaweriaPayments:
             for character in message.lower()
         ).strip("-")
         target = Path(tempfile.gettempdir()) / f"qris-{safe_message or 'payment'}.png"
-        qr_string, transaction_id, qr_path = create_payment_qr(
-            self.username,
-            amount,
-            self.email,
-            output_path=str(target),
-            use_template=True,
-        )
+        try:
+            qr_string, transaction_id, qr_path = create_payment_qr(
+                self.username,
+                amount,
+                self.email,
+                output_path=str(target),
+                use_template=True,
+            )
+        except Exception as exc:
+            if "Saweria account not found" in str(exc):
+                raise RuntimeError(
+                    "Akun Saweria tidak ditemukan. Isi SAWERIA_USERNAME dengan username "
+                    "Saweria saja, tanpa @ dan tanpa URL."
+                ) from exc
+            raise
         return PaymentRequest(
             transaction_id=transaction_id,
             payment_url=None,
