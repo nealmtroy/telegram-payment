@@ -4,6 +4,7 @@ import asyncio
 import random
 import re
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -260,7 +261,16 @@ class SaweriaPayments:
     def _request(self, method: str, url: str, **kwargs: Any) -> Any:
         kwargs.setdefault("proxies", self._proxies())
         session = self._requests_session()
-        return session.request(method, url, **kwargs)
+        attempts = 4
+        last_response: Any | None = None
+        for attempt in range(1, attempts + 1):
+            response = session.request(method, url, **kwargs)
+            last_response = response
+            if response.ok or not self._is_retryable_response(response) or attempt == attempts:
+                return response
+            delay = min(6.0, (0.8 * attempt) + random.uniform(0.2, 0.8))
+            time.sleep(delay)
+        return last_response
 
     def _requests_session(self) -> Any:
         if self._session is not None:
@@ -285,6 +295,13 @@ class SaweriaPayments:
 
         self._session = requests.Session()
         return self._session
+
+    def _is_retryable_response(self, response: Any) -> bool:
+        if response.status_code in {408, 409, 425, 429, 500, 502, 503, 504, 520, 522, 524}:
+            return True
+        if response.status_code == 403:
+            return "Just a moment" in response.text or response.headers.get("server") == "cloudflare"
+        return False
 
     def _response_debug(self, response: Any) -> str:
         content_type = response.headers.get("content-type", "-")
