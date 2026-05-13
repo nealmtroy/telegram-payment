@@ -161,10 +161,29 @@ class SaweriaPayments:
         }
 
     def _random_sender(self) -> str:
-        suffix = "".join(random.choice(string.ascii_lowercase) for _ in range(6))
-        return f"VIP{suffix}"
+        names = [
+            "Ahmad",
+            "Budi",
+            "Dedi",
+            "Rizky",
+            "Fajar",
+            "Bayu",
+            "Doni",
+            "Hendra",
+            "Aji",
+            "Rama",
+            "Dewi",
+            "Sari",
+            "Maya",
+            "Rina",
+            "Nina",
+            "Lina",
+        ]
+        return random.choice(names)
 
     def _email_with_tag(self, tag: str) -> str:
-        if "@" not in self.email:
-            return self.email
-        return self.email.replace("@", f"+{tag}@", 1)
+        normalized_name = "".join(
+            character.lower() for character in tag if character.isalnum()
+        ) or "user"
+        number = random.randint(1000, 9999)
+        return f"{normalized_name}{number}@gmail.com"
