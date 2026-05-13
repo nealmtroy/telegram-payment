@@ -16,7 +16,6 @@ from telegram.ext import (
 )
 
 from .config import Settings, load_settings
-from .health import start_health_server
 from .payments import SaweriaPayments
 from .storage import Order, Store
 from .telegram_user import TelegramUserClient
@@ -250,7 +249,6 @@ def main() -> None:
         level=getattr(logging, settings.log_level, logging.INFO),
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
-    start_health_server()
     bot = VipPaymentBot(settings)
     application = (
         ApplicationBuilder()

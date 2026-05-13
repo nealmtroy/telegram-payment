@@ -4,23 +4,15 @@ Bot Telegram untuk menjual akses group VIP. User membayar lewat QRIS Saweria, la
 
 ## Platform
 
-Target deploy sekarang adalah Cloudflare Containers. Workers biasa tidak cocok untuk bot ini karena Python + Telethon butuh runtime Linux dan proses polling yang berjalan lama.
-
-Cloudflare Containers berjalan lewat Worker launcher:
-
-- Worker route `/start` atau `/health` akan menyalakan container.
-- Cron trigger Worker ping container tiap 30 menit.
-- Container menjalankan `python -m vip_payment_bot`.
-- Bot Telegram tetap memakai polling.
-- Health server internal berjalan di port `8080` untuk readiness container.
+Target deploy sekarang adalah Railway sebagai Python worker. Ini lebih cocok untuk bot Telegram + Telethon karena prosesnya long-running dan tidak perlu Worker launcher atau container wakeup.
 
 ## Fitur
 
-- Konfigurasi lewat Cloudflare Worker secrets.
+- Konfigurasi lewat Railway variables.
 - Admin whitelist lewat `ADMIN_IDS`.
 - Payment QRIS Saweria lewat package `qris-saweria`.
 - Telethon user session untuk membuat invite link group VIP.
-- SQLite lokal untuk menyimpan order selama container berjalan.
+- SQLite untuk menyimpan order.
 - Background poller untuk cek pembayaran.
 - Invite link temporary dan single-use.
 
@@ -59,78 +51,35 @@ Wajib:
 - `VIP_GROUP_ID`: id group VIP, contoh `-1001234567890`.
 - `SAWERIA_USERNAME`: username Saweria penerima pembayaran.
 - `PAYMENT_AMOUNT`: nominal VIP, contoh `50000`, minimal `1000`.
-- `CLOUDFLARE_BOOT_TOKEN`: token random panjang untuk akses `/start` dan `/health`.
 
 Direkomendasikan:
 
 - `PAYMENT_EMAIL`: email donor untuk Saweria.
 - `PAYMENT_EXPIRE_MINUTES`: default `30`.
-- `PAYMENT_CHECK_INTERVAL_SECONDS`: default `20`.
+- `PAYMENT_CHECK_INTERVAL_SECONDS`: default `20`, minimal `5`.
 - `VIP_INVITE_EXPIRE_HOURS`: default `6`, maksimal `24`.
 - `VIP_INVITE_USAGE_LIMIT`: wajib `1`, link VIP single-use.
-- `DB_PATH`: default lokal `payments.db`; untuk Cloudflare gunakan `/tmp/payments.db`.
+- `DB_PATH`: default `payments.db`. Untuk Railway persistent volume, gunakan path di mounted volume, misalnya `/data/payments.db`.
 - `LOG_LEVEL`: default `INFO`.
 
-## Deploy Cloudflare Containers
+## Deploy Railway
 
-Prerequisite:
+1. Push repository ini ke GitHub.
+2. Buat project Railway dari repo `nealmtroy/telegram-payment`.
+3. Tambahkan semua variable environment di Railway.
+4. Jika ingin order tersimpan setelah restart/redeploy, tambahkan Railway Volume dan set `DB_PATH=/data/payments.db`.
+5. Deploy. Railway akan menjalankan:
 
-- Cloudflare Workers Paid plan dengan Containers enabled.
-- Docker Desktop aktif saat deploy.
-- Node.js dan npm tersedia.
-
-Install dependency Worker:
-
-```powershell
-npm install
+```bash
+python -m vip_payment_bot
 ```
 
-Login Cloudflare:
+File deploy yang dipakai:
 
-```powershell
-npx wrangler login
-```
-
-Set secrets satu per satu:
-
-```powershell
-npx wrangler secret put BOT_TOKEN
-npx wrangler secret put ADMIN_IDS
-npx wrangler secret put TELETHON_API_ID
-npx wrangler secret put TELETHON_API_HASH
-npx wrangler secret put TELETHON_SESSION_STRING
-npx wrangler secret put VIP_GROUP_ID
-npx wrangler secret put SAWERIA_USERNAME
-npx wrangler secret put PAYMENT_AMOUNT
-npx wrangler secret put PAYMENT_EMAIL
-npx wrangler secret put PAYMENT_EXPIRE_MINUTES
-npx wrangler secret put PAYMENT_CHECK_INTERVAL_SECONDS
-npx wrangler secret put VIP_INVITE_EXPIRE_HOURS
-npx wrangler secret put VIP_INVITE_USAGE_LIMIT
-npx wrangler secret put DB_PATH
-npx wrangler secret put LOG_LEVEL
-npx wrangler secret put CLOUDFLARE_BOOT_TOKEN
-```
-
-Deploy:
-
-```powershell
-npm run deploy
-```
-
-Setelah deploy, buka endpoint ini untuk menyalakan container:
-
-```powershell
-curl.exe -H "x-boot-token: TOKEN_KAMU" https://telegram-payment.NAMA_AKUN.workers.dev/start
-```
-
-Cek status container:
-
-```powershell
-npx wrangler containers list
-```
-
-Worker juga punya cron trigger `*/30 * * * *` untuk menjaga container tetap aktif. Kalau container sempat tidur atau restart, cron berikutnya akan mencoba menyalakannya lagi.
+- `Procfile`
+- `railway.json`
+- `runtime.txt`
+- `requirements.txt`
 
 ## Perintah Bot
 
@@ -144,5 +93,3 @@ Worker juga punya cron trigger `*/30 * * * *` untuk menjaga container tetap akti
 Bot hanya membuat order dari private chat supaya QRIS dan invite link tidak tercampur di group publik. Link VIP yang dikirim dibuat lewat Telethon dengan `expire_date` dan `usage_limit=1`.
 
 Akun Telethon harus menjadi admin di group VIP dan punya izin membuat invite link. `VIP_GROUP_ID` bisa didapat dari bot info/chat id helper atau dari log update bot.
-
-SQLite di Cloudflare Container bersifat cocok untuk state pendek selama container aktif. Untuk pembayaran produksi yang harus tahan restart/migrasi container, migrasikan storage order ke database eksternal.
