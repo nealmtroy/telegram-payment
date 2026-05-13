@@ -29,6 +29,7 @@ class SaweriaPayments:
     def _create_payment_sync(self, amount: int, message: str) -> PaymentRequest:
         from qris_saweria import create_payment_qr
 
+        self._validate_saweria_profile()
         safe_message = "".join(
             character if character.isalnum() else "-"
             for character in message.lower()
@@ -45,8 +46,9 @@ class SaweriaPayments:
         except Exception as exc:
             if "Saweria account not found" in str(exc):
                 raise RuntimeError(
-                    "Akun Saweria tidak ditemukan. Isi SAWERIA_USERNAME dengan username "
-                    "Saweria saja, tanpa @ dan tanpa URL."
+                    f"Akun Saweria '{self.username}' tidak ditemukan dari server. "
+                    "Pastikan SAWERIA_USERNAME isi username saja. Jika username sudah benar, "
+                    "kemungkinan Saweria memberi response berbeda ke IP hosting."
                 ) from exc
             raise
         return PaymentRequest(
@@ -60,3 +62,44 @@ class SaweriaPayments:
         from qris_saweria import check_paid_status
 
         return bool(check_paid_status(transaction_id))
+
+    def _validate_saweria_profile(self) -> None:
+        import json
+        import re
+        import requests
+
+        url = f"https://saweria.co/{self.username}"
+        response = requests.get(
+            url,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            },
+            timeout=30,
+        )
+        if not response.ok:
+            raise RuntimeError(
+                f"Saweria profile '{self.username}' gagal dibuka: HTTP {response.status_code}."
+            )
+
+        match = re.search(
+            r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
+            response.text,
+            re.DOTALL,
+        )
+        if not match:
+            raise RuntimeError(
+                f"Saweria profile '{self.username}' tidak mengandung __NEXT_DATA__. "
+                "Kemungkinan response Saweria dari IP hosting berbeda atau diblok."
+            )
+
+        data = json.loads(match.group(1))
+        profile = data.get("props", {}).get("pageProps", {}).get("data", {})
+        if not profile.get("id"):
+            raise RuntimeError(
+                f"Saweria profile '{self.username}' terbuka, tapi user id tidak ditemukan."
+            )

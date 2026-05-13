@@ -58,11 +58,11 @@ def _admin_ids() -> set[int]:
 
 def _saweria_username() -> str:
     raw = _required("SAWERIA_USERNAME")
-    value = raw.strip()
+    value = raw.strip().strip("\"'")
     if value.startswith(("http://", "https://")):
         parsed = urlparse(value)
         value = parsed.path.strip("/").split("/", 1)[0]
-    value = value.strip().strip("@").strip("/")
+    value = value.strip().strip("\"'").strip("@").strip("/")
     if not value:
         raise RuntimeError("SAWERIA_USERNAME tidak valid.")
     if "/" in value or "?" in value or "#" in value:
